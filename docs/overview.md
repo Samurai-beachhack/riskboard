@@ -1,30 +1,37 @@
 # Overview
+ 
+## What it is
+ZeroHour is a **decision layer on top of SAST**.
 
-ZeroHour is a **decision-layer CLI** for codebases.
+It helps teams decide **what to fix first**, not find vulnerabilities.
 
-It answers:
-> What breaks the business first if this code fails?
+---
+
+## The Idea
+Instead of scanning for everything, ZeroHour asks:
+
+> If this fails, what breaks the business first?
 
 ---
 
 ## Problem
 
-Static analysis tools:
-- Produce too many findings
-- Lack business or failure context
-- Do not help with prioritization
+Security and analysis tools produce:
+- Too many findings
+- No prioritization
+- No business impact context
 
-Teams know what is wrong.
-They do not know what to fix first.
+Teams waste time fixing low-impact issues.
 
 ---
 
-## Approach
+## How it works (high level)
 
-ZeroHour:
-- Uses static, deterministic analysis
-- Focuses on failure impact
-- Forces prioritization (Top 5 only)
+1. Statically scans a codebase
+2. Extracts structural failure signals
+3. Estimates failure impact
+4. Forces prioritization
+5. Outputs only the **top 10 issues**
 
 ---
 
@@ -44,3 +51,18 @@ ZeroHour:
 3. Decide where to focus
 4. Run SAST tools next
 
+---
+
+## What makes it different
+- Failure-first, not vulnerability-first
+- Deterministic output
+- Explainable reasoning
+- Terminal-native
+- Designed to complement SAST, not replace it
+
+---
+
+## Current status
+Prototype built during a hackathon.
+
+Focus: clarity, prioritization, and decision-making.
