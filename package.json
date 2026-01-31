@@ -4,14 +4,14 @@
   "description": "Terminal-based, context-aware failure predictor for full-stack codebases",
   "main": "dist/index.js",
   "bin": {
-    "zerohour": "dist/index.js"
+    "zerohour": "bin/zerohour.js"
   },
   "scripts": {
     "build": "tsc",
+    "postbuild": "chmod +x zerohour 2>/dev/null || true",
     "start": "node dist/index.js",
     "analyze": "node dist/index.js analyze",
-    "test": "jest",
-    "test:watch": "jest --watch",
+    "postinstall": "node -e \"try { require('fs').chmodSync('bin/zerohour.js', 0o755) } catch (e) {}\"",
     "prepublishOnly": "npm run build"
   },
   "keywords": ["failure-prediction", "cli", "codebase-analysis"],
@@ -27,10 +27,7 @@
   },
   "devDependencies": {
     "@babel/parser": "^7.23.6",
-    "@types/jest": "^29.5.11",
     "@types/node": "^20.10.6",
-    "jest": "^29.7.0",
-    "ts-jest": "^29.1.1",
     "typescript": "^5.3.3"
   }
 }

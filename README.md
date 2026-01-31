@@ -67,8 +67,37 @@ ZeroHour runs **before** SAST triage to focus effort where impact is highest.
 
 ## Usage
 
+From the project root after `npm run build`:
+
 ```bash
-failfast analyze
+# Run zerohour analyze separately (recommended)
+./zerohour analyze
+
+# Analyze current directory
+./zerohour analyze
+
+# Analyze a specific directory
+./zerohour analyze -C examples/sample-app
+
+# Plain text output (no boxen)
+./zerohour analyze --no-box
+```
+
+Use `zerohour` from any directory by adding the project to your PATH (optional):
+
+```bash
+export PATH="/path/to/zerohour:$PATH"
+zerohour analyze
+zerohour analyze -C /path/to/your/app
+```
+
+Other options:
+
+```bash
+npm run analyze                    # same as ./zerohour analyze
+npm run analyze -- -C examples/sample-app
+npx zerohour analyze               # if npx is available
+npm link && zerohour analyze       # global install (may need sudo for link)
 ```
 ---
 
