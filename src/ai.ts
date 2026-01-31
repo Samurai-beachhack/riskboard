@@ -1,3 +1,5 @@
+import * as fs from 'fs';
+import * as path from 'path';
 import OpenAI from 'openai';
 import { EnrichedFinding, AnalysisResult } from './types';
 
@@ -134,5 +136,92 @@ export async function prioritizeRisks(findings: EnrichedFinding[]): Promise<Anal
     }
 
     return { ...fallbackRanking(findings), isFallback: true };
+  }
+}
+
+export interface AiFixResult {
+  replacementCode: string;
+  imports: string[];
+  explanation: string;
+}
+
+/**
+ * Generates a code fix for a specific finding using Groq AI.
+ */
+export async function generateFix(finding: EnrichedFinding, rootPath?: string): Promise<AiFixResult> {
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) throw new Error('GROQ_API_KEY not found');
+
+  // Read file context
+  let fileContext = '';
+  try {
+    const baseDir = rootPath || process.cwd();
+    const filePath = path.join(baseDir, path.basename(finding.file));
+    if (fs.existsSync(filePath)) {
+      const content = fs.readFileSync(filePath, 'utf-8');
+      const lines = content.split(/\r?\n/);
+      
+      // Get context: 5 lines before and after
+      const start = Math.max(0, (finding.line - 1) - 5);
+      const end = Math.min(lines.length, (finding.endLine || finding.line) + 5);
+      
+      // Add line numbers for AI reference
+      fileContext = lines.slice(start, end)
+        .map((line, idx) => `${start + idx + 1}: ${line}`)
+        .join('\n');
+    }
+  } catch (e) {
+    console.warn('Could not read file for context, using snippet only.');
+    fileContext = finding.codeSnippet || '';
+  }
+
+  const openai = new OpenAI({
+    apiKey: apiKey,
+    baseURL: 'https://api.groq.com/openai/v1',
+  });
+
+  const prompt = `
+  You are a Senior Secure Code Expert. 
+  Fix the following security vulnerability.
+  
+  VULNERABILITY: ${finding.message}
+  FILE: ${finding.file}
+  
+  CODE CONTEXT (with line numbers):
+  ${fileContext}
+
+  TARGET LINES TO FIX: ${finding.line} - ${finding.endLine || finding.line}
+
+  INSTRUCTIONS:
+  1. Provide the EXACT code that should replace the target lines.
+  2. If the fix requires new imports, list them separately.
+  3. Ensure the code fits seamlessly into the surrounding context.
+  4. Return valid JSON only.
+
+  OUTPUT FORMAT:
+  {
+    "replacementCode": "string (the new code for the target lines)",
+    "imports": ["string (e.g. import x from 'y')"],
+    "explanation": "string (brief explanation of the fix)"
+  }
+  `;
+
+  const completion = await openai.chat.completions.create({
+    messages: [{ role: 'user', content: prompt }],
+    model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
+    temperature: 0.1,
+    response_format: { type: 'json_object' }
+  });
+
+  const content = completion.choices[0]?.message?.content || '{}';
+  try {
+    return JSON.parse(content);
+  } catch (e) {
+    // Fallback if JSON parsing fails
+    return {
+      replacementCode: content,
+      imports: [],
+      explanation: 'AI returned raw text.'
+    };
   }
 }

@@ -29,7 +29,8 @@ export function displayResults(result: AnalysisResult) {
     console.log(chalk.yellow('⚠️  AI API unavailable or failed. Showing deterministic results.\n'));
   }
 
-  // 1. Summary Table
+  // 1. Summary Table (Hidden - User requested continuous flow)
+  /*
   const table = new Table({
     head: [chalk.cyan('Rank'), chalk.cyan('Risk'), chalk.cyan('Severity'), chalk.cyan('File')],
     style: { head: [], border: [] }, // Minimalist style
@@ -47,6 +48,7 @@ export function displayResults(result: AnalysisResult) {
   console.log(chalk.bold('SUMMARY'));
   console.log(table.toString());
   console.log('\n');
+  */
 
   // 2. Detailed Cards
   result.topRisks.forEach((risk, index) => {
@@ -98,18 +100,20 @@ ${chalk.gray('CONFIDENCE')} ${risk.confidence === 'High' ? chalk.green('● High
   });
 }
 
-export function displayFullList(findings: EnrichedFinding[]) {
-  console.log(chalk.bold.cyan('\n🔍 FULL FINDINGS LIST'));
+export function displayFullList(findings: EnrichedFinding[], startIndex: number = 1) {
+  if (findings.length === 0) return;
+
+  console.log(chalk.bold.cyan(`\n📋 ADDITIONAL FINDINGS (${startIndex}-${startIndex + findings.length - 1})`));
   
   const table = new Table({
     head: [chalk.cyan('#'), chalk.cyan('Severity'), chalk.cyan('File'), chalk.cyan('Line'), chalk.cyan('Message')],
-    colWidths: [5, 10, 30, 8, 60],
+    colWidths: [6, 10, 30, 8, 60],
     wordWrap: true
   });
 
   findings.forEach((f, i) => {
     table.push([
-      i + 1,
+      startIndex + i,
       f.severity === 'ERROR' ? chalk.red('HIGH') : f.severity === 'WARNING' ? chalk.yellow('MED') : chalk.blue('LOW'),
       f.file,
       f.line,

@@ -2,6 +2,7 @@ export interface Finding {
   ruleId: string;
   file: string;
   line: number;
+  endLine?: number;
   message: string;
   severity: string;
   codeSnippet?: string;
@@ -39,6 +40,7 @@ export interface SemgrepResult {
   check_id: string;
   path: string;
   start: { line: number; col: number };
+  end: { line: number; col: number };
   extra: {
     severity: string;
     message: string;

@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import { parseFindings } from './parser';
 import { enrichContext } from './context';
-import { prioritizeRisks } from './ai';
+import { prioritizeRisks, generateFix, AiFixResult } from './ai';
 import { AnalysisResult, EnrichedFinding } from './types';
 
 export interface ZeroHourResult extends AnalysisResult {
@@ -49,4 +49,11 @@ export async function analyzeFindingsFile(findingsFilePath: string, onProgress?:
     ...result,
     allFindings: enriched
   };
+}
+
+/**
+ * Generates an AI fix for a given finding.
+ */
+export async function getFixForFinding(finding: EnrichedFinding, rootPath?: string): Promise<AiFixResult> {
+  return await generateFix(finding, rootPath);
 }
