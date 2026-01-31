@@ -5,19 +5,23 @@ import figlet from 'figlet';
 import gradient from 'gradient-string';
 import Table from 'cli-table3';
 import { highlight } from 'cli-highlight';
-import { AnalysisResult, RiskAnalysis } from './types';
+import { AnalysisResult, RiskAnalysis, EnrichedFinding } from './types';
 
 export function printWelcome() {
   const logoText = figlet.textSync('ZERO HOUR', {
-    font: 'ANSI Shadow', // Changed font for a more "hacker" look
+    font: 'ANSI Shadow',
     horizontalLayout: 'default',
     verticalLayout: 'default',
   });
 
   const tagline = chalk.bold.cyan('    SAST PRIORITIZATION ENGINE');
   
-  console.log('\n' + gradient.retro.multiline(logoText)); // Changed gradient to retro
+  // Clear screen for a fresh start
+  console.clear();
+  console.log('\n' + gradient('cyan', 'blue').multiline(logoText));
   console.log(tagline + '\n');
+  console.log(chalk.gray('    v1.0.0 | Powered by Groq AI'));
+  console.log(chalk.dim('─'.repeat(60)) + '\n');
 }
 
 export function displayResults(result: AnalysisResult) {
@@ -92,6 +96,29 @@ ${chalk.gray('CONFIDENCE')} ${risk.confidence === 'High' ? chalk.green('● High
       })
     );
   });
+}
+
+export function displayFullList(findings: EnrichedFinding[]) {
+  console.log(chalk.bold.cyan('\n🔍 FULL FINDINGS LIST'));
+  
+  const table = new Table({
+    head: [chalk.cyan('#'), chalk.cyan('Severity'), chalk.cyan('File'), chalk.cyan('Line'), chalk.cyan('Message')],
+    colWidths: [5, 10, 30, 8, 60],
+    wordWrap: true
+  });
+
+  findings.forEach((f, i) => {
+    table.push([
+      i + 1,
+      f.severity === 'ERROR' ? chalk.red('HIGH') : f.severity === 'WARNING' ? chalk.yellow('MED') : chalk.blue('LOW'),
+      f.file,
+      f.line,
+      f.message
+    ]);
+  });
+
+  console.log(table.toString());
+  console.log('\n');
 }
 
 export const spinner = ora({

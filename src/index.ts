@@ -8,7 +8,8 @@ import chalk from 'chalk';
 import { parseFindings } from './parser';
 import { enrichContext } from './context';
 import { prioritizeRisks } from './ai';
-import { printWelcome, displayResults, spinner } from './ui';
+import { printWelcome, displayResults, displayFullList, spinner } from './ui';
+import { analyzeFindingsFile } from './api';
 import { exec } from 'child_process';
 import util from 'util';
 import os from 'os';
@@ -62,11 +63,19 @@ program
     }
 
     // Run Scan
-    spinner.text = 'Running Semgrep scan (this may take a moment)...';
+    spinner.text = '🔎 Scanning codebase with Semgrep...';
     const findingsFile = path.resolve(process.cwd(), 'findings.json');
+    const cpuCount = os.cpus().length;
+    
+    // Performance optimizations:
+    // - jobs: Parallelize scanning
+    // - exclude: Skip heavy/irrelevant directories
+    // - skip-unknown-extensions: Only scan known code files (speeds up large repos)
+    const cmd = `semgrep scan --config auto --json --jobs ${cpuCount} --exclude node_modules --exclude dist --exclude coverage --exclude .git "${directory}" > "${findingsFile}"`;
+    
     try {
       // Use --json output for parsing
-      await execPromise(`semgrep scan --config auto --json "${directory}" > "${findingsFile}"`).catch(e => {
+      await execPromise(cmd).catch(e => {
         // semgrep returns 1 if findings found, which is fine
         if (e.code !== 1 && e.code !== 0) throw e;
       });
@@ -132,32 +141,34 @@ async function runAnalysis(filePath: string) {
     }
   }
 
-  // 2. Load & Parse
-  spinner.start('Loading findings...');
+  // 2. Run Analysis using Core API
+  spinner.start('Initializing analysis...');
   try {
-    if (!fs.existsSync(filePath)) {
-      throw new Error(`File not found: ${filePath}`);
-    }
-    const findings = parseFindings(filePath);
-    spinner.succeed(`Loaded ${findings.length} findings`);
+    const result = await analyzeFindingsFile(filePath, (msg) => {
+      spinner.text = msg;
+    });
+    
+    spinner.succeed('Analysis complete');
 
-    if (findings.length === 0) {
-      console.log(chalk.green('No findings to analyze! Good job.'));
+    if (result.allFindings.length === 0) {
+      console.log(chalk.green('✅ No findings to analyze! Good job.'));
       return;
     }
 
-    // 3. Enrich
-    spinner.start('Enriching context...');
-    const enriched = enrichContext(findings);
-    spinner.succeed('Context enrichment complete');
-
-    // 4. Prioritize
-    spinner.start('Prioritizing risks (calling Groq AI)...');
-    const result = await prioritizeRisks(enriched);
-    spinner.succeed('Analysis complete');
-
-    // 5. Display
+    // 3. Display
     displayResults(result);
+
+    // 4. Interactive Full List
+    const { showFull } = await inquirer.prompt([{
+      type: 'confirm',
+      name: 'showFull',
+      message: 'Would you like to see the full list of all findings?',
+      default: false
+    }]);
+
+    if (showFull) {
+      displayFullList(result.allFindings);
+    }
 
   } catch (error: any) {
     spinner.fail('Analysis failed');

@@ -29,63 +29,95 @@ export async function prioritizeRisks(findings: EnrichedFinding[]): Promise<Anal
       baseURL: 'https://api.groq.com/openai/v1',
     });
 
-    // Take top 20 by exposure score to avoid context limit
-    const topFindings = findings
-      .sort((a, b) => b.exposureScore - a.exposureScore)
-      .slice(0, 20);
-
-    const prompt = `
-    You are a Senior Security Engineer. Analyze these SAST findings and identify the TOP 5 most critical business risks.
-
-    FINDINGS (JSON):
-    ${JSON.stringify(topFindings, null, 2)}
-
-    INSTRUCTIONS:
-    1. Analyze the 'codeSnippet' in each finding to verify if the vulnerability is real and exploitable.
-    2. Prioritize based on BUSINESS IMPACT (e.g., data loss, auth bypass, financial loss, RCE).
-    3. Ignore findings that are clearly false positives or test files (unless it's a critical misconfiguration).
-    4. Return valid JSON only.
-
-    OUTPUT FORMAT:
-    {
-      "topRisks": [
-        {
-          "title": "Concise Risk Title",
-          "reason": "Technical reason why this is vulnerable based on the code snippet",
-          "impact": "Business consequence (what happens if exploited?)",
-          "fix": "Specific code fix or remediation strategy",
-          "confidence": "High" | "Medium" | "Low",
-          "originalFindingIndex": 0 (index in the provided list)
-        }
-      ]
-    }
-    `;
-
-    const completion = await openai.chat.completions.create({
-      messages: [{ role: 'user', content: prompt }],
-      model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
-      temperature: 0.1,
-      response_format: { type: 'json_object' }
-    });
-
-    const content = completion.choices[0]?.message?.content;
-
-    if (!content) {
-      throw new Error('Empty response from Groq API');
-    }
-
-    const parsed = JSON.parse(content);
+    // Optimization: Analyze more findings in parallel (Batching)
+    // We sort by exposure score first, then take top 60 (3 batches of 20)
+    const BATCH_SIZE = 20;
+    const MAX_BATCHES = 3;
     
-    // Map original findings back to the results
-    const mappedRisks = parsed.topRisks.map((risk: any) => {
-      const original = topFindings[risk.originalFindingIndex];
-      return {
-        ...risk,
-        originalFinding: original || topFindings[0] // Fallback if index invalid
-      };
+    const sortedFindings = findings.sort((a, b) => b.exposureScore - a.exposureScore);
+    const findingsToAnalyze = sortedFindings.slice(0, BATCH_SIZE * MAX_BATCHES);
+    
+    const batches = [];
+    for (let i = 0; i < findingsToAnalyze.length; i += BATCH_SIZE) {
+      batches.push(findingsToAnalyze.slice(i, i + BATCH_SIZE));
+    }
+
+    // Process batches in parallel
+    const batchPromises = batches.map(async (batch, batchIndex) => {
+      // Minify JSON for prompt (remove whitespace)
+      const findingsJson = JSON.stringify(batch.map((f, i) => ({
+        id: i, // Local index for mapping back
+        rule: f.ruleId,
+        file: f.file,
+        line: f.line,
+        code: f.codeSnippet ? f.codeSnippet.slice(0, 300) : '', // Truncate long snippets
+        msg: f.message
+      })));
+
+      const prompt = `
+      You are a Senior Security Engineer. Analyze these SAST findings.
+      Identify the most critical business risks (High/Critical only).
+      
+      FINDINGS:
+      ${findingsJson}
+
+      INSTRUCTIONS:
+      1. Verify if the vulnerability is real based on 'code'.
+      2. Prioritize based on BUSINESS IMPACT.
+      3. Return valid JSON only.
+      
+      OUTPUT FORMAT:
+      {
+        "risks": [
+          {
+            "title": "Concise Title",
+            "reason": "Why vulnerable",
+            "impact": "Business Impact",
+            "fix": "Fix",
+            "confidence": "High" | "Medium",
+            "originalId": 0
+          }
+        ]
+      }
+      `;
+
+      try {
+        const completion = await openai.chat.completions.create({
+          messages: [{ role: 'user', content: prompt }],
+          model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
+          temperature: 0.1,
+          response_format: { type: 'json_object' }
+        });
+
+        const content = completion.choices[0]?.message?.content;
+        if (!content) return [];
+        const parsed = JSON.parse(content);
+        
+        return (parsed.risks || parsed.topRisks || []).map((risk: any) => ({
+          ...risk,
+          originalFinding: batch[risk.originalId] || batch[0]
+        }));
+      } catch (e) {
+        console.warn(`Batch ${batchIndex + 1} failed: ${(e as Error).message}`);
+        return [];
+      }
     });
 
-    return { topRisks: mappedRisks };
+    // Wait for all batches
+    const results = await Promise.all(batchPromises);
+    const allRisks = results.flat();
+
+    // Deduplicate and Sort
+    const uniqueRisks = allRisks.filter((risk, index, self) => 
+      index === self.findIndex((t) => t.title === risk.title && t.originalFinding.file === risk.originalFinding.file)
+    );
+
+    // If AI failed completely, fallback
+    if (uniqueRisks.length === 0) {
+      throw new Error('No risks identified by AI');
+    }
+
+    return { topRisks: uniqueRisks.slice(0, 10) }; // Return top 10 combined
 
   } catch (error: any) {
     // Enhanced error logging
