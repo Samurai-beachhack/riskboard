@@ -9,7 +9,8 @@ import { parseFindings } from './parser';
 import { enrichContext } from './context';
 import { prioritizeRisks } from './ai';
 import { printWelcome, displayResults, displayFullList, spinner } from './ui';
-import { analyzeFindingsFile } from './api';
+import { analyzeFindingsFile, getFixForFinding } from './api';
+import { applyFix } from './fixer';
 import { exec } from 'child_process';
 import util from 'util';
 import os from 'os';
@@ -98,7 +99,7 @@ program
   .argument('[file]', 'Path to findings.json', 'findings.json')
   .action(async (file) => {
     printWelcome();
-    await runAnalysis(path.resolve(process.cwd(), file));
+await runAnalysis(path.join(process.cwd(), file.replace(/\.\.\//g, '').replace(/\//g, '')));
   });
 
 async function runAnalysis(filePath: string) {
@@ -155,25 +156,107 @@ async function runAnalysis(filePath: string) {
       return;
     }
 
-    // 3. Display
+    // 3. Re-organize findings for continuous numbering
+    // Ensure "Top Risks" are indices 1..K, and others follow.
+    const topFindings = result.topRisks.map(r => r.originalFinding);
+    const topFindingSet = new Set(topFindings);
+    const otherFindings = result.allFindings.filter(f => !topFindingSet.has(f));
+    
+    // Master list: Top Risks followed by the rest
+    const sortedAllFindings = [...topFindings, ...otherFindings];
+
+    // 4. Display Top Risks (Detailed)
     displayResults(result);
 
-    // 4. Interactive Full List
-    const { showFull } = await inquirer.prompt([{
-      type: 'confirm',
-      name: 'showFull',
-      message: 'Would you like to see the full list of all findings?',
-      default: false
-    }]);
-
-    if (showFull) {
-      displayFullList(result.allFindings);
+    // 5. Display Remaining Findings (Summary)
+    // Start numbering from (topRisks.length + 1)
+    if (otherFindings.length > 0) {
+      displayFullList(otherFindings, result.topRisks.length + 1);
+    } else {
+      console.log(chalk.green('\n✅ No additional findings.'));
     }
 
-  } catch (error: any) {
+    // 6. Interactive Fix Flow
+    let fixing = true;
+    let firstPass = true;
+
+    while (fixing) {
+      const { shouldFix } = await inquirer.prompt([{
+        type: 'confirm',
+        name: 'shouldFix',
+        message: firstPass ? 'Fix a finding with AI?' : 'Fix another finding?',
+        default: false
+      }]);
+
+      if (!shouldFix) {
+        fixing = false;
+        break;
+      }
+      
+      firstPass = false;
+
+      const { findingIndex } = await inquirer.prompt([{
+        type: 'number',
+        name: 'findingIndex',
+        message: `Enter the Finding # to fix (1-${sortedAllFindings.length}):`,
+        validate: (input) => {
+          if (typeof input === 'number' && !isNaN(input) && input >= 1 && input <= sortedAllFindings.length) return true;
+          return `Please enter a number between 1 and ${sortedAllFindings.length}`;
+        }
+      }]);
+
+      const findingToFix = sortedAllFindings[findingIndex - 1];
+
+      if (!findingToFix || !findingToFix.file) {
+        console.error(chalk.red('❌ Error: Selected finding is invalid or missing file path.'));
+        continue;
+      }
+
+      spinner.start('🤖 Generating AI fix...');
+      try {
+        const fixResult = await getFixForFinding(findingToFix);
+        spinner.stop();
+
+        if (!fixResult || !fixResult.replacementCode) {
+          console.log(chalk.yellow('⚠️  AI could not generate a fix (empty response).'));
+          continue;
+        }
+
+        console.log(chalk.bold.green('\n🔍 Proposed Fix:'));
+        console.log(chalk.dim('-'.repeat(40)));
+        if (fixResult.explanation) {
+            console.log(chalk.cyan(fixResult.explanation) + '\n');
+        }
+        if (fixResult.imports && fixResult.imports.length > 0) {
+            console.log(chalk.magenta('Imports to add:'));
+            fixResult.imports.forEach(imp => console.log(chalk.gray(`  ${imp}`)));
+            console.log('');
+        }
+        console.log(fixResult.replacementCode);
+        console.log(chalk.dim('-'.repeat(40)) + '\n');
+
+        const { apply } = await inquirer.prompt([{
+          type: 'confirm',
+          name: 'apply',
+          message: `Apply this fix to ${findingToFix.file}?`,
+          default: true
+        }]);
+
+        if (apply) {
+          const success = applyFix(findingToFix, fixResult);
+          if (success) {
+            console.log(chalk.green('✅ Fix applied successfully!'));
+            console.log(chalk.yellow('ℹ️  We recommend running tests to verify the change.'));
+          }
+        }
+      } catch (error: any) {
+        spinner.fail('Failed to generate fix');
+        console.error(chalk.red(error.message));
+      }
+    }
+  } catch (e: any) {
     spinner.fail('Analysis failed');
-    console.error(chalk.red(error.message));
-    process.exit(1);
+    console.error(e.message);
   }
 }
 

@@ -1,8 +1,8 @@
 {
-  "name": "zerohour-vscode",
-  "displayName": "ZeroHour AI SAST",
-  "description": "AI-powered SAST prioritization for VS Code and Trae AI",
-  "version": "0.0.1",
+  "name": "zerohour-trae",
+  "displayName": "ZeroHour for Trae AI",
+  "description": "Native AI-powered SAST prioritization and remediation for Trae AI",
+  "version": "1.0.0",
   "engines": {
     "vscode": "^1.80.0"
   },

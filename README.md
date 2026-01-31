@@ -1,122 +1,44 @@
-# ZeroHour
+# ZeroHour for Trae AI
 
-- 📄 **Git Workflow:** [GIT_WORKFLOW.md](./GIT_WORKFLOW.md "Git Workflow markdown")
-- 📄 **Execution Plan:** [EXECUTION_PLAN.md](./EXECUTION_PLAN.md "Execution Plan markdown")
-- 📄 **How it works (detail):** [docs/HOW_IT_WORKS.md](./docs/HOW_IT_WORKS.md "Detailed Documentation")
+**ZeroHour for Trae AI** is a native, AI-powered Static Application Security Testing (SAST) prioritization engine designed specifically for the Trae IDE.
 
-ZeroHour is a terminal-native CLI that identifies **what breaks the business first** in a codebase.
+It ingests findings from Semgrep, enriches them with project context (e.g., "Is this a payment module?", "Is this public-facing?"), and uses **Groq AI (Llama 3)** to rank them by **real business risk** directly within your Trae workflow.
 
-It is **not a SAST replacement**.  
-It is the **decision layer before SAST**.
+## Features
 
----
+- **Trae Native Integration**: Runs directly within Trae as a VS Code-compatible extension.
+- **AI-Powered Prioritization**: Filters out noise and highlights critical risks.
+- **Context-Aware**: Understands if code is auth-related, payment-related, or public-facing.
+- **One-Click AI Fixes**: Apply fixes instantly with the "Fix with ZeroHour AI" lightbulb action.
+- **Continuous Security**: Scan and fix iteratively without leaving your editor.
 
-## Problem
+## Getting Started in Trae
 
-Modern SAST tools are powerful, but they:
-- Produce hundreds of findings
-- Lack business context
-- Do not help teams decide what to fix *today*
-
-Teams know *what is wrong*, but not *what hurts first*.
-
----
-
-## What ZeroHour Does
-
-ZeroHour analyzes a codebase and outputs:
-
-- **Only the top 3 issues**
-- Ranked by **failure impact**
-- Translated into **business consequences**
-
-It answers:
-> “What breaks first if this fails?”
-
----
-
-## Core Principles
-
-- **Failure-first, not vulnerability-first**
-- **Forced prioritization (Top 3 only)**
-- **Business context built-in**
-- **Explainable results**
-  - Why this matters
-  - How it fails
-  - How to fix it
-- **No ML guessing**
-  - Deterministic and auditable
-- **Terminal-native**
-  - No dashboards
-  - No setup
-
----
-
-## How It Fits With SAST
-
-SAST tools are important. ZeroHour does not replace them.
-
-**SAST**
-- Finds what is wrong
-
-**ZeroHour**
-- Decides what matters first
-
-ZeroHour runs **before** SAST triage to focus effort where impact is highest.
-
----
-
-## Usage
-
-From the project root after `npm run build`:
+### 1. Installation
+ZeroHour for Trae AI is designed to be run as a local extension.
 
 ```bash
-# Run zerohour analyze separately (recommended)
-./zerohour analyze
-
-# Analyze current directory
-./zerohour analyze
-
-# Analyze a specific directory
-./zerohour analyze -C examples/sample-app
-
-# Plain text output (no boxen)
-./zerohour analyze --no-box
+cd extension
+npm install
+npm run compile
 ```
 
-Use `zerohour` from any directory by adding the project to your PATH (optional):
+Then, launch the extension from the "Run and Debug" panel in Trae.
 
-```bash
-export PATH="/path/to/zerohour:$PATH"
-zerohour analyze
-zerohour analyze -C /path/to/your/app
+### 2. Usage
+1. Open your project in Trae.
+2. Run the command **"ZeroHour: Analyze Risks"**.
+3. View prioritized risks in the **Output Panel** ("ZeroHour (Trae Edition)").
+4. Navigate to any file with a warning.
+5. Click the **Lightbulb icon** and select **"Fix with ZeroHour AI"**.
+
+## Configuration
+Create a `.env` file in your project root:
+```env
+GROQ_API_KEY=gsk_...
 ```
 
-Other options:
-
-```bash
-npm run analyze                    # same as ./zerohour analyze
-npm run analyze -- -C examples/sample-app
-npx zerohour analyze               # if npx is available
-npm link && zerohour analyze       # global install (may need sudo for link)
-```
----
-
-## Contributing
-
-Before making any changes, read the Git workflow:  
-[GIT_WORKFLOW.md](./GIT_WORKFLOW.md "Git Workflow markdown")
-
----
-
-## Contributors
-Built during the [BeachHack](https://beachhack.in "Beach Hack hackthon website") Hackathon.
-
-<p align="center">
-  <a href="https://github.com/Samurai-beachhack/zerohour/graphs/contributors">
-    <img
-      src="https://contrib.rocks/image?repo=Samurai-beachhack/zerohour&size=80&columns=6&bg=transparent"
-      alt="Contributors"
-    />
-  </a>
-</p>
+## Architecture
+- **Core Engine**: TypeScript-based analysis logic (shared with CLI).
+- **Extension**: Wraps the core engine for Trae/VS Code.
+- **AI**: Powered by Groq (Llama 3) for speed and accuracy.
