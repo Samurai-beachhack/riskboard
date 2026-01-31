@@ -108,10 +108,14 @@ Before making any changes, read the Git workflow:
 
 ---
 
-## Team
+## Contributors
 Built during the BeachHack Hackathon.
 
-- **Raakesh** (@Rakesh173)
-- **Adhil Ameen** (@aadhi13)
-- **Mathew** (@)
-- **Sangeeth** (@)
+<p align="center">
+  <a href="https://github.com/Samurai-beachhack/zerohour/graphs/contributors">
+    <img
+      src="https://contrib.rocks/image?repo=Samurai-beachhack/zerohour&size=80&columns=6&bg=transparent"
+      alt="Contributors"
+    />
+  </a>
+</p>
