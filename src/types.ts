@@ -1,48 +1,51 @@
-/**
- * ZeroHour – shared types
- */
-
-export type FileIntent = 'frontend' | 'backend' | 'db' | 'config' | 'shared';
-
-export interface TaggedFile {
-  path: string;
-  relativePath: string;
-  intents: FileIntent[];
-  content: string;
-  extension: string;
-}
-
-export type ConfidenceLevel = 'High' | 'Medium' | 'Low';
-
-export interface DetectedFailure {
+export interface Finding {
   ruleId: string;
   file: string;
   line: number;
-  detectionExplanation: string;
-  whyItMatters: string;
-  businessImpact: string;
-  confidence: ConfidenceLevel;
-  category: FailureCategory;
-  /** For ranking: business impact weight */
-  businessImpactScore: number;
-  /** For ranking: public vs internal */
-  exposureScore: number;
-  /** For ranking: likelihood of triggering */
-  likelihoodScore: number;
-  /** For ranking: ease of abuse/crash */
-  abuseEaseScore: number;
+  message: string;
+  severity: string;
+  codeSnippet?: string;
 }
 
-export type FailureCategory =
-  | 'business-critical'
-  | 'security'
-  | 'reliability'
-  | 'database'
-  | 'frontend'
-  | 'config';
+export interface ContextSignals {
+  isPayment: boolean;
+  isAdmin: boolean;
+  isAuth: boolean;
+  isPublicFacing: boolean;
+  modifiesDatabase: boolean;
+}
 
-export interface RuleDefinition {
-  id: string;
-  category: FailureCategory;
-  detect: (file: TaggedFile) => DetectedFailure[];
+export interface EnrichedFinding extends Finding {
+  context: ContextSignals;
+  exposureScore: number; // 0-10 based on signals
+}
+
+export interface RiskAnalysis {
+  title: string;
+  reason: string;
+  impact: string;
+  fix: string;
+  confidence: 'High' | 'Medium' | 'Low';
+  originalFinding: EnrichedFinding;
+}
+
+export interface AnalysisResult {
+  topRisks: RiskAnalysis[];
+  isFallback?: boolean;
+}
+
+// Semgrep JSON Output Interface (Partial)
+export interface SemgrepResult {
+  check_id: string;
+  path: string;
+  start: { line: number; col: number };
+  extra: {
+    severity: string;
+    message: string;
+    lines?: string;
+  };
+}
+
+export interface SemgrepOutput {
+  results: SemgrepResult[];
 }

@@ -8,13 +8,17 @@
   },
   "scripts": {
     "build": "tsc",
-    "postbuild": "chmod +x zerohour 2>/dev/null || true",
+    "postbuild": "chmod +x bin/zerohour.js",
     "start": "node dist/index.js",
     "analyze": "node dist/index.js analyze",
     "postinstall": "node -e \"try { require('fs').chmodSync('bin/zerohour.js', 0o755) } catch (e) {}\"",
     "prepublishOnly": "npm run build"
   },
-  "keywords": ["failure-prediction", "cli", "codebase-analysis"],
+  "keywords": [
+    "failure-prediction",
+    "cli",
+    "codebase-analysis"
+  ],
   "license": "MIT",
   "engines": {
     "node": ">=16"
@@ -22,11 +26,20 @@
   "dependencies": {
     "boxen": "^6.2.0",
     "chalk": "^4.1.2",
+    "cli-highlight": "^2.1.11",
+    "cli-table3": "^0.6.5",
     "commander": "^11.1.0",
-    "glob": "^10.3.10"
+    "dotenv": "^17.2.3",
+    "figlet": "^1.10.0",
+    "glob": "^10.3.10",
+    "gradient-string": "^3.0.0",
+    "inquirer": "^13.2.2",
+    "openai": "^6.17.0",
+    "ora": "^9.1.0"
   },
   "devDependencies": {
     "@babel/parser": "^7.23.6",
+    "@types/figlet": "^1.7.0",
     "@types/node": "^20.10.6",
     "typescript": "^5.3.3"
   }
