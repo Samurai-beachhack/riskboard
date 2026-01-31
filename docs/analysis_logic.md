@@ -12,96 +12,124 @@ All logic exists to answer this.
 
 ---
 
+## Analysis Pipeline
+
+1. **Semgrep** scans the codebase and produces structured findings  
+2. Findings are **normalized** into a unified internal format  
+3. **Grok** analyzes the normalized data to infer impact, priority, and context  
+4. ZeroHour enforces **forced prioritization** and prepares output  
+5. Optional AI generates **fix or remediation suggestions**
+
+---
+
 ## What Is Analyzed
 
-ZeroHour analyzes **failure-prone characteristics**, including:
+ZeroHour analyzes **failure-prone conditions derived from SAST findings**, including:
 
 - Single points of failure
-- Highly reused logic
-- Central orchestration code
+- Highly reused or central logic
+- Orchestration and control-flow hubs
 - Tight coupling across modules
-- Error-handling absence in critical paths
+- Missing or weak error-handling in critical paths
+- Findings that correlate across files or components
 
-It focuses on **impact**, not correctness.
+The focus is **failure impact**, not rule severity.
 
 ---
 
 ## What Is NOT Analyzed
 
-ZeroHour does NOT analyze:
-- Known vulnerabilities (CVEs)
-- Input sanitization issues
-- Authentication flaws
-- Cryptography misuse
+ZeroHour does NOT directly analyze:
+- Source code syntax or semantics
+- CVEs or vulnerability databases
 - Dependency versions
+- Runtime behavior
+- Production metrics
 
-Those belong to SAST or security scanners.
+Raw detection is delegated to **Semgrep**.
 
 ---
 
-## Failure Signals (Conceptual)
+## Failure Signals
 
-Signals used to estimate failure impact may include:
+Failure impact is inferred using signals such as:
 
-- Fan-in / fan-out imbalance
-- Centralized control flow
-- High dependency gravity
-- Low isolation of critical logic
+- Finding concentration in critical paths
+- Cross-file dependency relationships
+- Fan-in and fan-out imbalance
 - Failure propagation potential
+- Lack of isolation or recovery boundaries
 
-Signals are **structural**, not semantic.
+Signals are derived from **structured findings**, not raw code parsing.
 
 ---
 
 ## Failure Impact Estimation
 
-Impact is estimated based on:
-- How much code depends on the component
-- Whether failure propagates or is contained
-- Whether recovery paths exist
-- Whether failure blocks core workflows
+Impact estimation considers:
 
-No numeric risk score is shown to the user.
+- How widely a finding affects the system
+- Whether failure propagates or is contained
+- Whether the issue blocks core workflows
+- Whether meaningful recovery paths exist
+
+ZeroHour does not expose numeric risk scores.
 
 ---
 
 ## Forced Prioritization Rule
 
-- Only **top 10** findings are reported
-- Everything else is discarded
+- Output is limited to the **top 10 issues** by default
+- Remaining findings are discarded unless explicitly requested
 
-This is intentional.
+This constraint is intentional.
 
-ZeroHour optimizes for **decision-making**, not completeness.
+ZeroHour optimizes for **decision clarity**, not completeness.
 
 ---
 
 ## Explainability
 
 Each reported issue includes:
-- Why this area is risky
+
+- Why it matters
 - How failure propagates
 - What breaks if it fails
 - Where to look in the code
+- Optional remediation guidance
 
-No black-box decisions.
+Reasoning is explicit and human-readable.
 
 ---
 
-## Determinism Guarantee
+## Role of AI
 
-- Same input → same output
-- No randomness
-- No learning
-- No environment dependence
+AI is used to:
+- Interpret and correlate findings
+- Provide context-aware explanations
+- Suggest possible fixes or mitigations
+
+AI does NOT:
+- Perform scanning
+- Modify code automatically
+- Replace human judgment
+
+---
+
+## Determinism and Variability
+
+- Prioritization rules are deterministic
+- Ordering logic is stable for identical inputs
+- Explanations and fix suggestions may vary
 
 ---
 
 ## Known Limitations
 
-- Static-only analysis
-- Language and framework dependent
-- Cannot see runtime behavior
-- Cannot infer business logic intent
+- Dependent on Semgrep rule quality
+- Static analysis only
+- AI-generated fixes require human review
+- Business intent cannot be inferred directly
 
 These limits are explicit by design.
+
