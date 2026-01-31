@@ -1,24 +1,23 @@
 # ZeroHour
 
-- 📄 **Git Workflow:** [GIT_WORKFLOW.md](./GIT_WORKFLOW.md "Git Workflow markdown")
-- 📄 **Execution Plan:** [EXECUTION_PLAN.md](./EXECUTION_PLAN.md "Execution Plan markdown")
-- 📄 **How it works (detail):** [docs/HOW_IT_WORKS.md](./docs/HOW_IT_WORKS.md "Detailed Documentation")
+ZeroHour is a terminal-native CLI that answers one question:
 
-ZeroHour is a terminal-native CLI that identifies **what breaks the business first** in a codebase.
+> **What breaks the business first if this code fails?**
 
 It is **not a SAST replacement**.  
 It is the **decision layer before SAST**.
 
 ---
 
-## Problem
+## What Problem It Solves
 
-Modern SAST tools are powerful, but they:
-- Produce hundreds of findings
-- Lack business context
-- Do not help teams decide what to fix *today*
+Modern SAST tools:
+- Generate hundreds of findings
+- Treat all issues as equal
+- Lack business or failure impact context
 
-Teams know *what is wrong*, but not *what hurts first*.
+Teams know *what is wrong*  
+They do **not know what to fix first**
 
 ---
 
@@ -26,86 +25,85 @@ Teams know *what is wrong*, but not *what hurts first*.
 
 ZeroHour analyzes a codebase and outputs:
 
-- **Only the top 3 issues**
+- **Only the top 5 issues**
 - Ranked by **failure impact**
-- Translated into **business consequences**
+- Explained in **business consequences**
 
-It answers:
-> “What breaks first if this fails?”
+It focuses on:
+- Failure-prone areas
+- Single-point-of-failure logic
+- Risk concentration, not volume
 
 ---
 
+
 ## Core Principles
 
-- **Failure-first, not vulnerability-first**
-- **Forced prioritization (Top 3 only)**
-- **Business context built-in**
-- **Explainable results**
-  - Why this matters
-  - How it fails
-  - How to fix it
-- **No ML guessing**
-  - Deterministic and auditable
-- **Terminal-native**
-  - No dashboards
-  - No setup
+- Failure-first, not vulnerability-first
+- Forced prioritization (Top 5 only)
+- Business impact over technical noise
+- Deterministic and auditable logic
+- Terminal-only workflow
 
 ---
 
 ## How It Fits With SAST
 
-SAST tools are important. ZeroHour does not replace them.
-
-**SAST**
-- Finds what is wrong
+**SAST tools**
+- Find what is wrong
 
 **ZeroHour**
 - Decides what matters first
 
-ZeroHour runs **before** SAST triage to focus effort where impact is highest.
+Recommended flow:
+ZeroHour → Decide priorities → SAST → Fix
 
 ---
 
 ## Usage
 
-From the project root after `npm run build`:
+After building the project:
 
 ```bash
-# Run zerohour analyze separately (recommended)
-./zerohour analyze
-
 # Analyze current directory
 ./zerohour analyze
 
 # Analyze a specific directory
 ./zerohour analyze -C examples/sample-app
 
-# Plain text output (no boxen)
+# Plain output (no box UI)
 ./zerohour analyze --no-box
-```
 
-Use `zerohour` from any directory by adding the project to your PATH (optional):
-
-```bash
+Optional ways to run:
+npm run analyze
+npm run analyze -- -C examples/sample-app
+npx zerohour analyze
+npm link && zerohour analyze
+To run from anywhere:
 export PATH="/path/to/zerohour:$PATH"
 zerohour analyze
-zerohour analyze -C /path/to/your/app
 ```
 
-Other options:
+---
 
-```bash
-npm run analyze                    # same as ./zerohour analyze
-npm run analyze -- -C examples/sample-app
-npx zerohour analyze               # if npx is available
-npm link && zerohour analyze       # global install (may need sudo for link)
-```
+## Documentation
+- 📄 **Git Workflow:** [GIT_WORKFLOW.md](./GIT_WORKFLOW.md "Git Workflow markdown")
+- 📄 **Execution Plan:** [EXECUTION_PLAN.md](./EXECUTION_PLAN.md "Execution Plan markdown")
+- 📄 **How it works (detail):** [docs/HOW_IT_WORKS.md](./docs/HOW_IT_WORKS.md "Detailed Documentation")
+
 ---
 
 ## Contributing
 
 Before making any changes, read the Git workflow:  
-[GIT_WORKFLOW.md](./GIT_WORKFLOW.md "Git Workflow markdown")
+[GIT_WORKFLOW.md](./GIT_WORKFLOW.md "Detailed Git Workflow docs")
+
+---
+
+## Project Status
+
+Prototype built during a hackathon.
+Logic and scope may evolve.
 
 ---
 
@@ -115,8 +113,10 @@ Built during the [BeachHack](https://beachhack.in "Beach Hack hackthon website")
 <p align="center">
   <a href="https://github.com/Samurai-beachhack/zerohour/graphs/contributors">
     <img
-      src="https://contrib.rocks/image?repo=Samurai-beachhack/zerohour&size=80&columns=6&bg=transparent"
+      src="https://contrib.rocks/image?repo=Samurai-beachhack/zerohour&size=80&columns=10&bg=transparent"
       alt="Contributors"
     />
   </a>
 </p>
+
+
