@@ -32,53 +32,53 @@ When you run `zerohour analyze` (or `./zerohour analyze -C <dir>`):
                                       ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │  1. Discover (scanner/discover.ts)                                          │
-│  • glob() over rootDir for analyzable extensions                             │
-│  • Ignore: node_modules, .git, dist, build, .next, coverage, *.min.js, etc.   │
+│  • glob() over rootDir for analyzable extensions                            │
+│  • Ignore: node_modules, .git, dist, build, .next, coverage, *.min.js, etc. │
 │  • Output: list of absolute file paths                                      │
 └─────────────────────────────────────────────────────────────────────────────┘
                                       │
                                       ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │  2. Classify (scanner/classify.ts)                                          │
-│  • For each path: read file content, infer intents from content + extension  │
-│  • Intents: frontend | backend | db | config | shared (multiple allowed)     │
-│  • Output: TaggedFile[] (path, relativePath, intents, content, extension)    │
+│  • For each path: read file content, infer intents from content + extension │
+│  • Intents: frontend | backend | db | config | shared (multiple allowed)    │
+│  • Output: TaggedFile[] (path, relativePath, intents, content, extension)   │
 └─────────────────────────────────────────────────────────────────────────────┘
                                       │
                                       ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │  3. Run rules (rules/index.ts)                                              │
-│  • For each TaggedFile, run all 34 rule functions                            │
-│  • Each rule returns DetectedFailure[] (or [])                               │
-│  • Output: flat list of all DetectedFailure (file, line, ruleId, scores…)    │
+│  • For each TaggedFile, run all 34 rule functions                           │
+│  • Each rule returns DetectedFailure[] (or [])                              │
+│  • Output: flat list of all DetectedFailure (file, line, ruleId, scores…)   │
 └─────────────────────────────────────────────────────────────────────────────┘
                                       │
                                       ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  4. Rank (scoring/score.ts)                                                 │
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│  4. Rank (scoring/score.ts)                                                     │
 │  • composite = businessImpact×1.5 + exposure×1.2 + likelihood×1 + abuseEase×0.8 │
-│  • Sort by composite desc; tie-break by ruleId+file                          │
-│  • Output: TOP 3 DetectedFailure                                            │
-└─────────────────────────────────────────────────────────────────────────────┘
+│  • Sort by composite desc; tie-break by ruleId+file                             │
+│  • Output: TOP 3 DetectedFailure                                            	  │
+└─────────────────────────────────────────────────────────────────────────────────┘
                                       │
                                       ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │  5. Delta (delta.ts)                                                        │
-│  • Load .zerohour-last.json from rootDir (if exists)                         │
+│  • Load .zerohour-last.json from rootDir (if exists)                        │
 │  • Compare current TOP 3 with last run by key (file:line:ruleId)            │
-│  • new = in current not in last; gone = in last not in current; same = both  │
-│  • Save current TOP 3 to .zerohour-last.json for next run                    │
-│  • Output: DeltaResult { new, gone, same, hasLastRun }                       │
+│  • new = in current not in last; gone = in last not in current; same = both │
+│  • Save current TOP 3 to .zerohour-last.json for next run                   │
+│  • Output: DeltaResult { new, gone, same, hasLastRun }                      │
 └─────────────────────────────────────────────────────────────────────────────┘
                                       │
                                       ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  6. Print (output/printer.ts)                                               │
-│  • For each of TOP 3: title, file:line, why, scenario, Risk Story (3 steps), │
-│    Blast radius, Decision trace (score formula + values), Fix now, confidence│
-│  • If hasLastRun: “What changed since last run” (new / resolved / unchanged)  │
-│  • Optional: wrap in boxen (--no-box for plain text)                         │
-└─────────────────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────────────┐
+│  6. Print (output/printer.ts)                                                  │
+│  • For each of TOP 3: title, file:line, why, scenario, Risk Story (3 steps),   │
+│    Blast radius, Decision trace (score formula + values), Fix now, confidence  │
+│  • If hasLastRun: “What changed since last run” (new / resolved / unchanged)   │
+│  • Optional: wrap in boxen (--no-box for plain text)                           │
+└────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
